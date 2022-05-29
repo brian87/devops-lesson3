@@ -137,49 +137,31 @@ jobs:
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  
       - run:
           name: Add back-end ip to ansible inventory
+          working_directory: ./.circleci/ansible
           command: |
-            aws ec2 describe-instances \
-              --query 'Reservations[*].Instances[*].PublicIpAddress' \
-              --filters "Name=tag:project,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --output text >> inventory
-            cat inventory
+            ip=$(aws ec2 describe-instances \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}" \
+            --output text)
+            echo "$ip" >> inventory.txt
+            cat inventory.txt
+           
+      - run:
+            name: Dependencies
+            command: |
+              cat .circleci/ansible/inventory.txt
+              ls ~/project/.circleci/ansible/
+              cat ~/project/.circleci/ansible/inventory.txt
+              yum -y install tar gzip jq npm
+              
       - persist_to_workspace:
-          root: .circleci/ansible
+          root: ~/
           paths:
-            - inventory.txt
+            - project/.circleci/ansible/inventory.txt
 
       - destroy-environment:
           id: ${CIRCLE_WORKFLOW_ID:0:7}
           when: on_fail
-  
-  configure-infrastructure:
-    docker:
-      - image: python:3.7-alpine3.11
-      # Docker image here that supports Ansible
-    steps:
-      # Checkout code from git
-      - checkout
-      - add_ssh_keys:
-          fingerprints: ["bb:9e:b0:de:3a:2a:76:02:3b:9a:05:05:27:09:71:a0"]
-      - attach_workspace:
-          at: .circleci/ansible
-      - run:
-          name: Install dependencies
-          working_directory: ./.circleci/ansible
-          command: |
-            apk add --no-cache \
-            python3 \
-            py3-pip \
-            && pip3 install --upgrade pip \
-            && pip3 install \
-            awscli \
-            && rm -rf /var/cache/apk/*
-            apk add --update ansible
-      - run:
-          name: Configure server
-          command: |
-            ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i .circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
-      # Here's where you will add some code to rollback on failure  
 
 workflows:
   default:
@@ -196,5 +178,5 @@ workflows:
           requires: [build-frontend]
       - deploy-infrastructure:
           requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-      - configure-infrastructure:
-          requires: [deploy-infrastructure]
+          
+          
