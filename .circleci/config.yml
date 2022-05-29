@@ -191,6 +191,43 @@ jobs:
           command: |
             ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i .circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
 
+  run-migrations:
+    docker:
+      # Docker image here that supports NodeJS
+      - image: circleci/node:13.8.0
+    steps:
+      # Checkout code from git
+      - checkout
+      - run:
+          name: Install dependendices
+          command: |
+            sudo apt-get -y -qq update
+            sudo apt-get -qq install awscli
+            sudo apt-get -y -qq install python3
+      - run:
+          name: Run migrations
+          command: |
+            cd backend
+            npm install
+            npm run build
+            # npm audit fix --audit-level=critical --force
+            # echo "_________________ Step Ended ___________________"
+            touch migration.txt
+            npm run migrations >> migration.txt
+            cat migration.txt
+      - run:
+          name: Send migration results to memstash
+          command: |
+            if grep -q "has been executed successfully." migration.txt
+            then
+            curl -H "Content-Type: text/plain" -H "token: ${WORKFLOW}" \
+            --request PUT \
+            --data "1" https://api.memstash.io/values/migration-${WORKFLOW}
+            else
+            curl -H "Content-Type: text/plain" -H "token: ${WORKFLOW}" \
+            --request PUT \
+            --data "0" https://api.memstash.io/values/migration-${WORKFLOW}
+            fi
 workflows:
   default:
     jobs:
