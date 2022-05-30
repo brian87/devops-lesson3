@@ -171,7 +171,7 @@ jobs:
       # Checkout code from git
       - checkout
       - add_ssh_keys:
-          fingerprints: ["bb:9e:b0:de:3a:2a:76:02:3b:9a:05:05:27:09:71:a0"]
+          fingerprints: ["03:87:21:ea:7f:b7:5c:d4:4e:6f:7a:c7:c3:bd:2a:ea"]
       - attach_workspace:
           at: .circleci/ansible
       - run:
