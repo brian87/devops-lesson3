@@ -171,7 +171,7 @@ jobs:
       # Checkout code from git
       - checkout
       - add_ssh_keys:
-          fingerprints: ["03:87:21:ea:7f:b7:5c:d4:4e:6f:7a:c7:c3:bd:2a:ea"]
+          fingerprints: ["c8:d8:8b:0e:bf:1d:64:f7:0a:2a:a8:03:bb:de:3f:bc"]
       - attach_workspace:
           at: .circleci/ansible
       - run:
@@ -189,7 +189,7 @@ jobs:
       - run:
           name: Configure server
           command: |
-            ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i .circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
+            ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -vv -i .circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
 
   run-migrations:
     docker:
