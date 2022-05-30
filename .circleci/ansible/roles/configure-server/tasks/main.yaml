@@ -17,6 +17,7 @@
     global: yes
     production: yes
     state: present
+    version: 4.5.6
 
   environment:
     Environment:

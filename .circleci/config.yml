@@ -228,14 +228,12 @@ jobs:
           command: |
             if grep -q "has been executed successfully." migration.txt
             then
-            curl -H "Content-Type: text/plain" -H "token: ${WORKFLOW}" \
-            --request PUT \
-            --data "1" https://api.memstash.io/values/migration-${WORKFLOW}
+              curl https://kvdb.io/Mzkq5mgw1JFZ3iDEGG3xU3/migration-{CIRCLE_WORKFLOW_ID:0:7} -d "1" 
             else
-            curl -H "Content-Type: text/plain" -H "token: ${WORKFLOW}" \
-            --request PUT \
-            --data "0" https://api.memstash.io/values/migration-${WORKFLOW}
+              curl https://kvdb.io/Mzkq5mgw1JFZ3iDEGG3xU3/migration-{CIRCLE_WORKFLOW_ID:0:7} -d "0" 
             fi
+      # Here's where you will add some code to rollback on failure      
+
 workflows:
   default:
     jobs:
