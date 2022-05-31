@@ -394,13 +394,12 @@ jobs:
             curl -k https://kvdb.io/Mzkq5mgw1JFZ3iDEGG3xU3/WorkflowID -d "${WorkflowID}" 
       - run:
           name: Update cloudfront distribution
-          working_directory: ./.circleci/files
           command: |
             aws cloudformation deploy \
             --template-file .circleci/files/cloudfront.yml \
-            --stack-name "udapeople-cloudfront-${CIRCLE_WORKFLOW_ID}" \
-            --parameter-overrides WORKFLOW="${CIRCLE_WORKFLOW_ID}" \
-            --tags env=udacpeople-${CIRCLE_WORKFLOW_ID}
+            --stack-name "udapeople-cloudfront-${CIRCLE_WORKFLOW_ID:0:7}" \
+            --parameter-overrides  WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
+            --tags env=udapeople-${CIRCLE_WORKFLOW_ID:0:7}
 
   cleanup:
     executor: aws
