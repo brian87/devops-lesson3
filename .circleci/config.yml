@@ -202,20 +202,21 @@ jobs:
             --output text)
             echo "$ip" >> inventory.txt
             cat inventory.txt
-            curl -k https://kvdb.io/Mzkq5mgw1JFZ3iDEGG3xU3/BACKEND_IP -d "$ip" 
-           
+            curl -k https://kvdb.io/Mzkq5mgw1JFZ3iDEGG3xU3/BACKEND_IP -d "$ip"            
       - run:
             name: Dependencies
             command: |
               cat .circleci/ansible/inventory.txt
               ls ~/project/.circleci/ansible/
               cat ~/project/.circleci/ansible/inventory.txt
-              yum -y install tar gzip jq npm
-              
+              yum -y install tar gzip jq npm              
       - persist_to_workspace:
           root: .
           paths:
             - .circleci/ansible/inventory.txt
+      - destroy_environment:
+          id: ${CIRCLE_WORKFLOW_ID:0:7}
+          when: on_fail
   
   configure-infrastructure:
     docker:
@@ -244,6 +245,9 @@ jobs:
           name: Configure server
           command: |
             ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -vv -i .circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
+      - destroy_environment:
+          id: ${CIRCLE_WORKFLOW_ID:0:7}
+          when: on_fail
 
   run-migrations:
     executor: node
@@ -275,7 +279,9 @@ jobs:
             else
               curl -k https://kvdb.io/Mzkq5mgw1JFZ3iDEGG3xU3/migration-${CIRCLE_WORKFLOW_ID:0:7} -d "0" 
             fi
-      # Here's where you will add some code to rollback on failure      
+      - destroy_environment:
+          id: ${CIRCLE_WORKFLOW_ID:0:7}
+          when: on_fail      
 
   deploy-frontend:
     executor: node
@@ -311,7 +317,12 @@ jobs:
           root: .
           paths:
             - frontend/dist
-
+      - destroy_environment:
+          id: ${CIRCLE_WORKFLOW_ID:0:7}
+          when: on_fail
+      - revert_migrations:
+          id: ${CIRCLE_WORKFLOW_ID:0:7}
+          when: on_fail
 
   deploy-backend:
     executor: python
@@ -346,7 +357,12 @@ jobs:
           command: |
             cat .circleci/ansible/inventory.txt
             ANSIBLE_HOST_KEY_CHECKING=False  ansible-playbook -vv -i .circleci/ansible/inventory.txt .circleci/ansible/deploy-backend.yml 
-
+      - destroy_environment:
+          id: ${CIRCLE_WORKFLOW_ID:0:7}
+          when: on_fail
+      - revert_migrations:
+          id: ${CIRCLE_WORKFLOW_ID:0:7}
+          when: on_fail
 
   smoke-test:
     executor: python
@@ -373,6 +389,12 @@ jobs:
           command: |
             URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-eu-west-1.amazonaws.com/index.html"
             curl -s ${URL} | grep -q "Welcome"
+      - destroy_environment:
+          id: ${CIRCLE_WORKFLOW_ID:0:7}
+          when: on_fail
+      - revert_migrations:
+          id: ${CIRCLE_WORKFLOW_ID:0:7}
+          when: on_fail            
 
   cloudfront-update:
     executor: aws
@@ -388,6 +410,7 @@ jobs:
           name: Store old WorkflowID in memstash for cleanup phase
           working_directory: ./.circleci/files
           command: |
+
             WorkflowID=$(aws cloudformation \
               list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
               --no-paginate --output text)
@@ -400,6 +423,12 @@ jobs:
             --stack-name "udapeople-cloudfront-${CIRCLE_WORKFLOW_ID:0:7}" \
             --parameter-overrides  WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
             --tags env=udapeople-${CIRCLE_WORKFLOW_ID:0:7}
+      - destroy_environment:
+          id: ${CIRCLE_WORKFLOW_ID:0:7}
+          when: on_fail
+      - revert_migrations:
+          id: ${CIRCLE_WORKFLOW_ID:0:7}
+          when: on_fail
 
   cleanup:
     executor: aws
@@ -410,7 +439,14 @@ jobs:
           command: |
             OldWorkflowID=$(curl -k https://kvdb.io/Mzkq5mgw1JFZ3iDEGG3xU3/WorkflowID)
             CurrentWorkflowID=${CIRCLE_WORKFLOW_ID:0:7}
-            if [[ "$CurrentWorkflowID" != "$OldWorkflowID" ]]
+            echo OldWorkflowID: "${OldWorkflowID}"
+            echo CurrentWorkflowID: "${CIRCLE_WORKFLOW_ID}"
+            # Fetch the stack names
+              export STACKS=$(aws cloudformation list-stacks --query "StackSummaries[*].StackName" --stack-status-filter CREATE_COMPLETE --no-paginate --output text)
+              echo Stack names: "${STACKS[@]}"
+              # Remove old stacks and files
+              echo THIS IS THE OldWorkflowID: "${OldWorkflowID}"
+            if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
             then
               echo "$OldWorkflowID!=$CurrentWorkflowID => will delete old version"
               aws s3 rm "s3://udapeople-${OldWorkflowID}" --recursive
