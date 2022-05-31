@@ -271,9 +271,9 @@ jobs:
           command: |
             if grep -q "has been executed successfully." migration.txt
             then
-              curl -k https://kvdb.io/Mzkq5mgw1JFZ3iDEGG3xU3/migration-$\{CIRCLE_WORKFLOW_ID:0:7\} -d "1" 
+              curl -k https://kvdb.io/Mzkq5mgw1JFZ3iDEGG3xU3/migration-${CIRCLE_WORKFLOW_ID:0:7} -d "1" 
             else
-              curl -k https://kvdb.io/Mzkq5mgw1JFZ3iDEGG3xU3/migration-$\{CIRCLE_WORKFLOW_ID:0:7\} -d "0" 
+              curl -k https://kvdb.io/Mzkq5mgw1JFZ3iDEGG3xU3/migration-${CIRCLE_WORKFLOW_ID:0:7} -d "0" 
             fi
       # Here's where you will add some code to rollback on failure      
 
@@ -297,6 +297,7 @@ jobs:
             export API_URL="http://${BACKEND_IP}:3030"
             echo API_URL="http://${BACKEND_IP}:3030" >> ".env"
             echo "${API_URL}"
+            npm install webpack-dev-server -g
             npm run build
       - run:
           name: Deploy frontend objects to S3
@@ -330,7 +331,7 @@ jobs:
           working_directory: ./.circleci/ansible
           command: |
             cat inventory
-            ansible-playbook -i inventory deploy-server.yaml -vv
+            ansible-playbook -i inventory deploy-backend.yaml -vv
 
 
   smoke-test:
