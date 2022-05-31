@@ -298,6 +298,7 @@ jobs:
             echo API_URL="http://${BACKEND_IP}:3030" >> ".env"
             echo "${API_URL}"
             npm install webpack-dev-server -g
+            npm install
             npm run build
       - run:
           name: Deploy frontend objects to S3
@@ -328,10 +329,9 @@ jobs:
             aws --version
       - run:
           name: Deploy backend
-          working_directory: ./.circleci/ansible
           command: |
             cat inventory
-            ansible-playbook -i inventory deploy-backend.yaml -vv
+            ANSIBLE_HOST_KEY_CHECKING=False  ansible-playbook -vv -i .circleci/ansible/inventory.txt .circleci/ansible/deploy-backend.yml 
 
 
   smoke-test:
