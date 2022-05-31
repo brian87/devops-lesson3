@@ -1,1 +1,5 @@
-https://github.com/brian87/devops-lesson3
+Gitrepo: https://github.com/brian87/devops-lesson3
+S3 Bucket: http://udapeople-aab1ead.s3-website-eu-west-1.amazonaws.com/
+CloudFront: https://udapeople-aab1ead.s3-eu-west-1.amazonaws.com/index.html#/employees
+Back-end: http://ec2-34-244-122-127.eu-west-1.compute.amazonaws.com:3030/api/status
+Prometheus: http://ec2-3-249-78-60.eu-west-1.compute.amazonaws.com:9090/targets
