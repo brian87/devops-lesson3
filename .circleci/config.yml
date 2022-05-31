@@ -1,5 +1,17 @@
 version: 2.1
 
+executors:
+  node:
+    docker:
+      - image: circleci/node:13.8.0
+  python:
+    docker:
+      - image: python:3.9.0-alpine
+  aws:
+    docker:
+      - image: amazon/aws-cli
+
+
 commands:
   destroy-environment:
     description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
@@ -28,8 +40,7 @@ commands:
             
 jobs:
   build-frontend:
-    docker:
-      - image: circleci/node:13.8.0
+    executor: node
     steps:
       - checkout
       - restore_cache:
@@ -43,10 +54,13 @@ jobs:
       - save_cache:
           paths: [frontend/node_modules]
           key: frontend-build
+      - persist_to_workspace:
+          root: .
+          paths:
+            - frontend/node_modules    
 
   build-backend:
-    docker:
-      - image: circleci/node:13.8.0
+    executor: node
     steps:
       - checkout
       - restore_cache:
@@ -76,10 +90,13 @@ jobs:
       - save_cache:
           paths: [backend/node_modules]
           key: backend-build
+      - persist_to_workspace:
+          root: .
+          paths:
+            - backend/node_modules    
     
   test-frontend:
-    docker:
-      - image: circleci/node:13.8.0
+    executor: node
     steps:
       - checkout
       - restore_cache:
@@ -93,8 +110,7 @@ jobs:
 
                 
   test-backend:
-    docker:
-      - image: circleci/node:13.8.0
+    executor: node
     steps:
       - checkout
       - restore_cache:
@@ -107,8 +123,7 @@ jobs:
             npm run test
   
   scan-frontend:
-    docker:
-      - image: circleci/node:13.8.0
+    executor: node
     steps:
       - checkout
       - restore_cache:
@@ -122,8 +137,7 @@ jobs:
            
 
   scan-backend:
-    docker:
-      - image: circleci/node:13.8.0
+    executor: node
     steps:
       - checkout
       - restore_cache:
@@ -136,9 +150,7 @@ jobs:
             npm audit fix --audit-level=critical --force
 
   deploy-infrastructure:
-    docker:
-      # Docker image here that supports AWS CLI
-      - image: amazon/aws-cli
+    executor: aws
     steps:
       # Checkout code from git
       - checkout
@@ -179,9 +191,9 @@ jobs:
               yum -y install tar gzip jq npm
               
       - persist_to_workspace:
-          root: .circleci/ansible
+          root: .
           paths:
-            - inventory.txt
+            - .circleci/ansible/inventory
 
       - destroy-environment:
           id: ${CIRCLE_WORKFLOW_ID:0:7}
@@ -197,7 +209,7 @@ jobs:
       - add_ssh_keys:
           fingerprints: ["c8:d8:8b:0e:bf:1d:64:f7:0a:2a:a8:03:bb:de:3f:bc"]
       - attach_workspace:
-          at: .circleci/ansible
+          at: .
       - run:
           name: Install dependencies
           working_directory: ./.circleci/ansible
@@ -216,9 +228,7 @@ jobs:
             ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -vv -i .circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
 
   run-migrations:
-    docker:
-      # Docker image here that supports NodeJS
-      - image: circleci/node:13.8.0
+    executor: node
     steps:
       # Checkout code from git
       - checkout
