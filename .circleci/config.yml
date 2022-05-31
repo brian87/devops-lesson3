@@ -441,18 +441,18 @@ workflows:
                 - master          
       - configure-infrastructure:
           requires: [deploy-infrastructure]
-      # - run-migrations:
-      #     requires: [configure-infrastructure]
-      #     filters:
-      #       branches:
-      #         only:
-      #           - master          
-      - deploy-backend
-          # requires:
-          #   - run-migrations
-      - deploy-frontend
-          # requires:
-          #   - run-migrations
+      - run-migrations:
+          requires: [configure-infrastructure]
+          filters:
+            branches:
+              only:
+                - master          
+      - deploy-backend:
+          requires:
+            - run-migrations
+      - deploy-frontend:
+          requires:
+            - run-migrations
       - smoke-test:
           requires:
             - deploy-backend
