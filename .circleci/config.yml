@@ -52,6 +52,22 @@ jobs:
       - restore_cache:
           keys: [backend-build]
       - run:
+          name: prepare environment for backend build
+          command: |
+            cat \<< EOF > backend/.env
+            ENVIRONMENT=production
+            VERSION=1
+            TYPEORM_CONNECTION=postgres
+            TYPEORM_MIGRATIONS_DIR=./src/migrations
+            TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts
+            TYPEORM_MIGRATIONS=./src/migrations/*.ts
+            TYPEORM_HOST=${TYPEORM_HOST}
+            TYPEORM_PORT=${TYPEORM_PORT}
+            TYPEORM_USERNAME=${TYPEORM_USERNAME}
+            TYPEORM_PASSWORD=${TYPEORM_PASSWORD}
+            TYPEORM_DATABASE=${TYPEORM_DATABASE}
+            EOF    
+      - run:
           name: Back-end build
           command: |
             cd backend
@@ -206,6 +222,8 @@ jobs:
     steps:
       # Checkout code from git
       - checkout
+      - attach_workspace:
+          at: .
       - run:
           name: Install dependendices
           command: |
@@ -214,13 +232,8 @@ jobs:
             sudo apt-get -y -qq install python3
       - run:
           name: Run migrations
-          command: |
-            cd backend
-            npm install
-            npm run build
-            # npm audit fix --audit-level=critical --force
-            # echo "_________________ Step Ended ___________________"
-            touch migration.txt
+          working_directory: ./backend
+          command: |            
             npm run migrations >> migration.txt
             cat migration.txt
       - run:
